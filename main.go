@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bufio"
 	"bytes"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -20,43 +21,43 @@ import (
 	"strings"
 	"syscall"
 	"time"
-  "crypto/rand"	
-  "golang.org/x/sys/windows/registry"
-  "github.com/fatih/color"
+
+	"github.com/fatih/color"
+	"golang.org/x/sys/windows/registry"
 )
 
 const (
 	host    = "<apiserver>"
-	apikey  = "<apikey>"	
-	version = "V2.0"
+	apikey  = "<apikey>"
+	version = "V2.1"
 	debug   = false
 )
 
-var clear map[string]func() //create a map for storing clear funcs	
+var clear map[string]func() //create a map for storing clear funcs
 var ClientGUID, ClientName string
 var ThreadCount int64
 
 func init() {
-    clear = make(map[string]func()) //Initialize it
-    clear["linux"] = func() { 
-        cmd := exec.Command("clear") //Linux example, its tested
-        cmd.Stdout = os.Stdout
-        cmd.Run()
-    }
-    clear["windows"] = func() {
-        cmd := exec.Command("cmd", "/c", "cls") //Windows example, its tested 
-        cmd.Stdout = os.Stdout
-        cmd.Run()
-    }
+	clear = make(map[string]func()) //Initialize it
+	clear["linux"] = func() {
+		cmd := exec.Command("clear") //Linux example, its tested
+		cmd.Stdout = os.Stdout
+		cmd.Run()
+	}
+	clear["windows"] = func() {
+		cmd := exec.Command("cmd", "/c", "cls") //Windows example, its tested
+		cmd.Stdout = os.Stdout
+		cmd.Run()
+	}
 }
 
 func CallClear() {
-    value, ok := clear[runtime.GOOS] //runtime.GOOS -> linux, windows, darwin etc.
-    if ok { //if we defined a clear func for that platform:
-        value()  //we execute it
-    } else { //unsupported platform
-        panic("Your platform is unsupported! I can't clear terminal screen :(")
-    }
+	value, ok := clear[runtime.GOOS] //runtime.GOOS -> linux, windows, darwin etc.
+	if ok {                          //if we defined a clear func for that platform:
+		value() //we execute it
+	} else { //unsupported platform
+		panic("Your platform is unsupported! I can't clear terminal screen :(")
+	}
 }
 
 func versionCheck() {
@@ -85,9 +86,9 @@ func versionCheck() {
 		fmt.Println("----------------------------------------------------------------------")
 		fmt.Println("------------------------NEW VERSION AVAILABLE-------------------------")
 		fmt.Println("---https://github.com/COVID-si/covid-solver-windows/releases/latest---")
-		fmt.Println("----------------------------------------------------------------------")		    
-    color.Red  ("** PLEASE MAKE SURE YOU ALWAYS USE THE LATEST SOFTWARE. THANK YOU! ***")        
-    color.Blue ("** Support: https://covid.si **** email: support@covid.si ************")        
+		fmt.Println("----------------------------------------------------------------------")
+		color.Red("** PLEASE MAKE SURE YOU ALWAYS USE THE LATEST SOFTWARE. THANK YOU! ***")
+		color.Blue("** Support: https://covid.si **** email: support@covid.si ************")
 	}
 
 }
@@ -107,9 +108,9 @@ func SetupCloseHandler() {
 
 func generateGUID() (guid string) {
 	b := make([]byte, 16)
-_, err := rand.Read(b)
+	_, err := rand.Read(b)
 	if err != nil {
-    log.Fatal(err)
+		log.Fatal(err)
 	}
 	guid = fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
 	return guid
@@ -118,10 +119,10 @@ _, err := rand.Read(b)
 func main() {
 	SetupCloseHandler()
 	reader := bufio.NewReader(os.Stdin)
-	ClientName = "CovidSolverWin-" + version	
+	ClientName = "CovidSolverWin-" + version
 	fmt.Printf("Welcome to %s\n", ClientName)
-	
-	versionCheck()	
+
+	versionCheck()
 	fmt.Println(`# Copyright Notice and Disclaimer
 # ===============================
 #
@@ -160,39 +161,39 @@ func main() {
 #
 # If You run this software you read the licence in full conscience and agree
 # to the terms described above.`)
-  fmt.Println("")
+	fmt.Println("")
 	fmt.Println("To agree and continue press enter")
 	if !debug {
 		reader.ReadString('\n')
-	}	
+	}
 	CallClear()
 	// Check if GUID/UUID exists in the registry and read it out. If not, generate it and write it into registry
 	k, err := registry.OpenKey(registry.CURRENT_USER, `Software\CovidSolverWin`, registry.QUERY_VALUE|registry.SET_VALUE)
-  if err != nil {
-      //log.Fatal(err)
-      k, _, err = registry.CreateKey(registry.CURRENT_USER, `Software\CovidSolverWin`,registry.QUERY_VALUE|registry.SET_VALUE)
-  }
-  ClientGUID, _, err = k.GetStringValue("MachineID")
-  if err != nil {
-      //log.Fatal(err)
-      ClientGUID = generateGUID()
-      k.SetStringValue("MachineID", ClientGUID)
-  }    
-  err = k.Close()
-  if err != nil {
-      log.Fatal(err)
-  }
-  fmt.Println("*************************************************************************")    
+	if err != nil {
+		//log.Fatal(err)
+		k, _, err = registry.CreateKey(registry.CURRENT_USER, `Software\CovidSolverWin`, registry.QUERY_VALUE|registry.SET_VALUE)
+	}
+	ClientGUID, _, err = k.GetStringValue("MachineID")
+	if err != nil {
+		//log.Fatal(err)
+		ClientGUID = generateGUID()
+		k.SetStringValue("MachineID", ClientGUID)
+	}
+	err = k.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("*************************************************************************")
 	fmt.Print("* Your client ID is: ")
 	color.Yellow(ClientGUID + "\n")
 	fmt.Println("*************************************************************************")
-		
+
 	//versionCheck()
 	fmt.Println("-------------------------")
 	fmt.Println("For this software to work you need Microsoft Visual C++ 2010")
 	fmt.Println(" Redistributable Package installed.")
 	fmt.Println("")
-	fmt.Print ("Have you already installed it? (y/n) ")
+	fmt.Print("Have you already installed it? (y/n) ")
 	vcredist, _ := reader.ReadString('\n')
 	vcredist = strings.Replace(vcredist, "\n", "", -1)
 	vcredist = strings.TrimSpace(vcredist)
@@ -203,11 +204,10 @@ func main() {
 		os.Exit(0)
 
 	}
-  fmt.Println("")
+	fmt.Println("")
 	auto := false
 	threads := int64(runtime.NumCPU())
 
-	
 	/*var save map[string]string
 	data, err := ioutil.ReadFile("tmp_settings")
 	fmt.Println(string(data))
@@ -253,9 +253,15 @@ func main() {
 		}
 	}
 	fmt.Println("")
-  ThreadCount = threads
+	ThreadCount = threads
+	LastMsg := messageCheck()
+	fmt.Println("Last message ID read: ", LastMsg)
+	fmt.Println("")
+	fmt.Printf("Press ENTER to continue...")
+	_, _ = reader.ReadString('\n')
+
 	for {
-		versionCheck()
+
 		fmt.Println("")
 		if !auto {
 			fmt.Println("Do you want to automatically restart docking when done calculating")
@@ -339,6 +345,24 @@ func main() {
 			continue
 		}
 
+		fmt.Println("Zipped package downloaded")
+		fmt.Sprintf("Decompressing 3D_structures_%d.sdf.zip\n", counter)
+		path, err := os.Getwd()
+		if err != nil {
+			log.Println(err)
+		}
+		_, err = Unzip(fmt.Sprintf("3D_structures_%d.sdf.zip", counter), path)
+		if err != nil {
+			fmt.Println("Error decompressing package file")
+			//os.RemoveAll("package")
+			//os.Remove(fmt.Sprintf("3D_structures_%d.sdf.zip", counter)) //TODO put it back
+			<-time.After(time.Second * 10)
+			continue
+		} else {
+			os.Remove(fmt.Sprintf("3D_structures_%d.sdf.zip", counter))
+			fmt.Println("Zipped package decompressed")
+		}
+
 		ok = splitPackage(counter, threads)
 		if !ok {
 			fmt.Println("Problem splitting package")
@@ -364,7 +388,7 @@ func main() {
 		fmt.Println("File uploaded page")
 
 		//CLEAN UP
-
+		LastMsg = messageCheck()
 	}
 
 }
@@ -393,6 +417,54 @@ func joinPackage(count, target, threads int64) bool {
 		return false
 	}
 	return true
+}
+func messageCheck() int {
+	client := &http.Client{
+		Timeout: time.Second * 20,
+	}
+	response, err := client.Get(host + "messages?LastMsgRead=0")
+	if err != nil {
+		fmt.Println("Error checking for messages")
+		return -1
+	}
+	defer response.Body.Close()
+	type Message struct {
+		Id     int    `json:"id"`
+		TextEN string `json:"textEN"`
+	}
+
+	decoder := json.NewDecoder(response.Body)
+	// read open bracket
+	_, err = decoder.Token()
+	if err != nil {
+		log.Fatal(err)
+	}
+	var msgs int
+	if decoder.More() {
+		msgs = 1
+		color.Yellow("************** NEW MESSAGES ************************\n")
+	}
+	var m Message
+	for decoder.More() {
+
+		err = decoder.Decode(&m)
+		if err != nil {
+			fmt.Println("Problem reading messages")
+			return -1
+		}
+		color.Green("Msg nr. %d:\n", m.Id)
+		color.HiWhite("%s\n", m.TextEN)
+	}
+	if msgs == 1 {
+		color.Yellow("************** END OF MESSAGES *********************\n")
+	}
+	// read closing bracket
+	_, err = decoder.Token()
+	if err != nil {
+		log.Fatal(err)
+	}
+	response.Body.Close()
+	return m.Id
 }
 
 func splitPackage(counter, threads int64) bool {
@@ -423,12 +495,41 @@ func splitPackage(counter, threads int64) bool {
 	return true
 }
 
-func uploadFile(number, count, target int64) bool {	
-	ThreadCountStr := strconv.FormatInt(ThreadCount,10)
-	extraParams := map[string]string{		
-		"apikey": apikey, "ClientGUID":ClientGUID,"Client":ClientName,"ThreadCount":ThreadCountStr,
+func uploadFile(number, count, target int64) bool {
+	ThreadCountStr := strconv.FormatInt(ThreadCount, 10)
+	extraParams := map[string]string{
+		"apikey": apikey, "ClientGUID": ClientGUID, "Client": ClientName, "ThreadCount": ThreadCountStr,
 	}
-	request, err := newfileUploadRequest(fmt.Sprintf("%s/%d/file/%d", host, target, number), extraParams, "data", fmt.Sprintf("output/OUT_T%d_%d.sdf", target, number))
+	file, err := os.Open(fmt.Sprintf("output/OUT_T%d_%d.sdf", target, number))
+	if err != nil {
+		log.Fatal(err)
+	}
+	fi, err := file.Stat()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Output file size: ", fi.Size(), " bytes.")
+	if fi.Size() == 0 {
+		err = ioutil.WriteFile(fmt.Sprintf("output/OUT_T%d_%d.sdf", target, number), []byte("NO RESULTS"), 0775)
+		if err != nil {
+			log.Fatal(err)
+		}
+		color.Magenta("OUTPUT file without results, wrote NO RESULTS to file.")
+	}
+	file.Close()
+
+	//Zip OUTPUT file
+
+	files := []string{fmt.Sprintf("output/OUT_T%d_%d.sdf", target, number)}
+	output := fmt.Sprintf("output/OUT_T%d_%d.sdf.zip", target, number)
+
+	if err := ZipFiles(output, files); err != nil {
+		fmt.Println("Output file compression failed!")
+		panic(err)
+	} else {
+		fmt.Println("Compressed output file:", output)
+	}
+	request, err := newfileUploadRequest(fmt.Sprintf("%s/%d/file/%d?zipFlag=1", host, target, number), extraParams, "data", fmt.Sprintf("output/OUT_T%d_%d.sdf.zip", target, number))
 	if err != nil {
 		if count == 5 {
 			log.Println("Error preparing file for upload, aborting", err)
@@ -557,11 +658,11 @@ func getPackageFile(number, count, target int64) bool {
 	client := &http.Client{
 		Timeout: 60 * time.Second,
 	}
-	ThreadCountStr := strconv.FormatInt(ThreadCount,10)	
+	ThreadCountStr := strconv.FormatInt(ThreadCount, 10)
 	extraParams, _ := json.Marshal(map[string]string{
-		"apikey": apikey, "ClientGUID":ClientGUID,"Client":ClientName,"ThreadCount":ThreadCountStr,
+		"apikey": apikey, "ClientGUID": ClientGUID, "Client": ClientName, "ThreadCount": ThreadCountStr,
 	})
-	response, err := client.Post(fmt.Sprintf("%s/%d/file/down/%d", host, target, number), "application/json", bytes.NewBuffer(extraParams))
+	response, err := client.Post(fmt.Sprintf("%s/%d/file/down/%d?zipFlag=1", host, target, number), "application/json", bytes.NewBuffer(extraParams))
 	if err != nil {
 		if count == 5 {
 			log.Println("Error getting package file, aborting", err)
@@ -573,7 +674,7 @@ func getPackageFile(number, count, target int64) bool {
 
 	}
 	defer response.Body.Close()
-	out, err := os.Create(fmt.Sprintf("3D_structures_%d.sdf", number))
+	out, err := os.Create(fmt.Sprintf("3D_structures_%d.sdf.zip", number))
 	if err != nil {
 		log.Println("Error storing package file, aborting", err)
 		return false
@@ -592,9 +693,9 @@ func getCounter(count, target int) (int64, bool) {
 	client := &http.Client{
 		Timeout: 60 * time.Second,
 	}
-	ThreadCountStr := strconv.FormatInt(ThreadCount,10)	
+	ThreadCountStr := strconv.FormatInt(ThreadCount, 10)
 	extraParams, _ := json.Marshal(map[string]string{
-		"apikey": apikey, "ClientGUID":ClientGUID,"Client":ClientName,"ThreadCount":ThreadCountStr,
+		"apikey": apikey, "ClientGUID": ClientGUID, "Client": ClientName, "ThreadCount": ThreadCountStr,
 	})
 
 	response, err := client.Post(fmt.Sprintf("%s/%d/counter", host, target), "application/json", bytes.NewBuffer(extraParams))
@@ -638,9 +739,9 @@ func downloadPrerequiredFiles(count, target int) bool {
 	client := &http.Client{
 		Timeout: 60 * time.Second,
 	}
-	ThreadCountStr := strconv.FormatInt(ThreadCount,10)	
+	ThreadCountStr := strconv.FormatInt(ThreadCount, 10)
 	extraParams, _ := json.Marshal(map[string]string{
-		"apikey": apikey, "ClientGUID":ClientGUID,"Client":ClientName,"ThreadCount":ThreadCountStr,
+		"apikey": apikey, "ClientGUID": ClientGUID, "Client": ClientName, "ThreadCount": ThreadCountStr,
 	})
 
 	response, err := client.Post(fmt.Sprintf("%s/%d/file/target/archive", host, target), "application/json", bytes.NewBuffer(extraParams))
@@ -673,9 +774,9 @@ func getTarget(count int) (int64, bool) {
 	client := &http.Client{
 		Timeout: 60 * time.Second,
 	}
-	ThreadCountStr := strconv.FormatInt(ThreadCount,10)	
+	ThreadCountStr := strconv.FormatInt(ThreadCount, 10)
 	extraParams, _ := json.Marshal(map[string]string{
-		"apikey": apikey, "ClientGUID":ClientGUID,"Client":ClientName,"ThreadCount":ThreadCountStr,
+		"apikey": apikey, "ClientGUID": ClientGUID, "Client": ClientName, "ThreadCount": ThreadCountStr,
 	})
 
 	response, err := client.Post(fmt.Sprintf("%s/target", host), "application/json", bytes.NewBuffer(extraParams))
@@ -771,4 +872,62 @@ func Unzip(src string, dest string) ([]string, error) {
 		}
 	}
 	return filenames, nil
+}
+
+// ZipFiles compresses one or many files into a single zip archive file.
+// Param 1: filename is the output zip file's name.
+// Param 2: files is a list of files to add to the zip.
+func ZipFiles(filename string, files []string) error {
+
+	newZipFile, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer newZipFile.Close()
+
+	zipWriter := zip.NewWriter(newZipFile)
+	defer zipWriter.Close()
+
+	// Add files to zip
+	for _, file := range files {
+		if err = AddFileToZip(zipWriter, file); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func AddFileToZip(zipWriter *zip.Writer, filename string) error {
+
+	fileToZip, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer fileToZip.Close()
+
+	// Get the file information
+	info, err := fileToZip.Stat()
+	if err != nil {
+		return err
+	}
+
+	header, err := zip.FileInfoHeader(info)
+	if err != nil {
+		return err
+	}
+
+	// Using FileInfoHeader() above only uses the basename of the file. If we want
+	// to preserve the folder structure we can overwrite this with the full path.
+	//header.Name = filename
+
+	// Change to deflate to gain better compression
+	// see http://golang.org/pkg/archive/zip/#pkg-constants
+	header.Method = zip.Deflate
+
+	writer, err := zipWriter.CreateHeader(header)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(writer, fileToZip)
+	return err
 }
