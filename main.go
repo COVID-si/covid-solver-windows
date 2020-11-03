@@ -27,9 +27,9 @@ import (
 )
 
 const (
-	host    = "<apiserver>"
-	apikey  = "<apikey>"
-	version = "V2.1"
+  host    = "<apiserver>"
+  apikey  = "<apikey>"	
+	version = "V2.3"
 	debug   = false
 )
 
@@ -237,7 +237,7 @@ func main() {
 	if threads > 1 {
 		fmt.Printf("Your computer is capable of using %d simultaneous threads, how many of\n", threads)
 		fmt.Printf("them do you want to utilize? ")
-		input := "4"
+		input := ""
 		var err error
 		if !debug {
 			input, err = reader.ReadString('\n')
@@ -422,7 +422,7 @@ func messageCheck() int {
 	client := &http.Client{
 		Timeout: time.Second * 20,
 	}
-	response, err := client.Get(host + "messages?LastMsgRead=0")
+	response, err := client.Get(host + "/messages?LastMsgRead=0")	
 	if err != nil {
 		fmt.Println("Error checking for messages")
 		return -1
@@ -437,7 +437,9 @@ func messageCheck() int {
 	// read open bracket
 	_, err = decoder.Token()
 	if err != nil {
-		log.Fatal(err)
+		//log.Fatal(err)
+		fmt.Println("No messages")
+		return -1
 	}
 	var msgs int
 	if decoder.More() {
